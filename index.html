@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="hy">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Տետր</title>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #e8e8e8;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            touch-action: manipulation;
+            overscroll-behavior: none;
+        }
+
+        .cover-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #e8e8e8;
+            z-index: 100;
+            padding: 20px;
+            transition: opacity 0.5s ease, transform 0.5s ease;
+        }
+
+        .cover-screen.hidden {
+            opacity: 0;
+            transform: scale(0.9);
+            pointer-events: none;
+        }
+
+        .cover {
+            width: 100%;
+            max-width: 420px;
+            aspect-ratio: 3 / 4;
+            max-height: 85vh;
+            background-color: #a8d5a2;
+            border: 1px solid #7fb87a;
+            border-radius: 6px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .cover:active { transform: scale(0.98); }
+
+        .cover-logo {
+            position: absolute;
+            top: 4%;
+            font-family: 'Brush Script MT', cursive;
+            font-size: clamp(14px, 4vw, 22px);
+            color: #2c5e2e;
+            border: 2px solid #2c5e2e;
+            border-radius: 20px;
+            padding: 1px 14px;
+            font-style: italic;
+        }
+
+        .cover-title {
+            font-size: clamp(26px, 8vw, 40px);
+            font-weight: bold;
+            color: #2c5e2e;
+            letter-spacing: 3px;
+            margin-bottom: 8%;
+            font-family: Georgia, serif;
+        }
+
+        .cover-fields {
+            width: 85%;
+            color: #2c5e2e;
+            font-size: clamp(11px, 3.2vw, 16px);
+            font-family: Georgia, serif;
+        }
+
+        .field-row {
+            position: relative;
+            margin-bottom: 5%;
+            height: clamp(18px, 5vw, 28px);
+            display: flex;
+            align-items: flex-end;
+        }
+
+        .field-row .label {
+            white-space: nowrap;
+            padding-right: 5px;
+            line-height: 1;
+        }
+
+        .field-row .line {
+            flex-grow: 1;
+            border-bottom: 2px solid #2c5e2e;
+            height: 100%;
+            display: flex;
+            align-items: flex-end;
+            padding-left: 5px;
+            min-width: 0;
+        }
+
+        .field-row .value {
+            font-family: 'Comic Sans MS', 'Segoe UI', cursive;
+            font-size: clamp(11px, 3.2vw, 16px);
+            color: #1a3d1c;
+            line-height: 1;
+            padding-bottom: 2px;
+            font-weight: bold;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .cover-hint {
+            position: absolute;
+            bottom: 4%;
+            font-size: clamp(10px, 2.8vw, 13px);
+            color: #2c5e2e;
+            opacity: 0.7;
+        }
+
+        .book-screen {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            pointer-events: none;
+            padding: 70px 55px 20px 55px;
+        }
+
+        .book-screen.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        #book {
+            width: 100%;
+            height: 100%;
+            max-width: 100%;
+            max-height: 100%;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+        }
+
+        /* ===== СТРАНИЦЫ ===== */
+        .page {
+            background-color: #fff;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .page.text-page {
+            background-image:
+                linear-gradient(to bottom, transparent 24px, #a8c8e8 24px, #a8c8e8 25px, transparent 25px);
+            background-size: 100% 25px;
+        }
+
+        .page.text-page::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background-color: #e74c3c;
+            left: 28px;
+            z-index: 1;
+        }
+
+        .page.text-page:nth-child(even)::before {
+            left: auto;
+            right: 28px;
+        }
+
+        .page-content {
+            position: absolute;
+            top: 0;
+            left: 36px;
+            right: 10px;
+            bottom: 0;
+            padding-top: 0;
+            font-size: 11px;
+            line-height: 25px;
+            color: #1a3d8c;
+            font-family: 'Comic Sans MS', 'Segoe UI', cursive;
+            overflow: hidden;
+            word-wrap: break-word;
+            z-index: 2;
+        }
+
+        .page.text-page:nth-child(even) .page-content {
+            left: 10px;
+            right: 36px;
+        }
+
+        .lesson-title {
+            font-weight: bold;
+            color: #2c5e2e;
+            font-size: 12px;
+        }
+
+        /* ===== СТРАНИЦЫ С ФОТО ===== */
+        .photo-page {
+            background-color: #fafafa;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+        }
+
+        .photo-page .photo-frame {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .photo-page img {
+            max-width: 100%;
+            max-height: calc(100% - 40px);
+            object-fit: contain;
+            border: 3px solid #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            border-radius: 2px;
+        }
+
+        .photo-page .photo-caption {
+            font-family: 'Comic Sans MS', 'Segoe UI', cursive;
+            font-size: 11px;
+            color: #2c5e2e;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        /* Кнопки навигации */
+        .nav-btn {
+            position: fixed;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+            transition: background-color 0.2s, opacity 0.2s, transform 0.1s;
+            user-select: none;
+            z-index: 200;
+            padding: 0;
+            line-height: 1;
+        }
+
+        #prev-btn { left: 6px; }
+        #next-btn { right: 6px; }
+
+        .nav-btn:active:not(:disabled) {
+            background-color: #357abd;
+            transform: translateY(-50%) scale(0.9);
+        }
+
+        .nav-btn:disabled { cursor: default; }
+
+        @media (max-width: 700px) {
+            .book-screen { padding: 65px 52px 15px 52px; }
+            .nav-btn { width: 38px; height: 38px; font-size: 18px; }
+            #prev-btn { left: 4px; }
+            #next-btn { right: 4px; }
+        }
+
+        @media (max-width: 400px) {
+            .book-screen { padding: 60px 48px 12px 48px; }
+            .nav-btn { width: 34px; height: 34px; font-size: 16px; }
+            .page-content { font-size: 10px; }
+            .lesson-title { font-size: 11px; }
+            .photo-page .photo-caption { font-size: 10px; }
+        }
+
+        @media (max-height: 500px) and (orientation: landscape) {
+            .cover { max-width: 55vh; }
+            .book-screen { padding: 10px 55px 10px 55px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cover-screen" id="cover-screen">
+        <div class="cover" id="cover">
+            <div class="cover-logo">Hatber</div>
+            <div class="cover-title">ՏԵՏՐ</div>
+
+            <div class="cover-fields">
+                <div class="field-row full">
+                    <span class="label">Առարկա՝</span>
+                    <div class="line"><span class="value">Գրականություն</span></div>
+                </div>
+                <div class="field-row full">
+                    <span class="label">Աշակերտ՝</span>
+                    <div class="line"><span class="value">Արմեն Անդրեասյան</span></div>
+                </div>
+                <div class="field-row full">
+                    <span class="label">Դասարան՝</span>
+                    <div class="line"><span class="value">10Գ</span></div>
+                </div>
+                <div class="field-row full">
+                    <span class="label">Դպրոց՝</span>
+                    <div class="line"><span class="value">9-րդ ավագ դպրոց</span></div>
+                </div>
+            </div>
+
+            <div class="cover-hint">Սեղմեք՝ բացելու համար →</div>
+        </div>
+    </div>
+
+    <div class="book-screen" id="book-screen">
+        <button class="nav-btn" id="prev-btn" disabled style="opacity: 0.4;">←</button>
+        <div id="book"></div>
+        <button class="nav-btn" id="next-btn">→</button>
+    </div>
+
+    <script src="https://unpkg.com/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+
+    <script>
+        // ===== ԵՐԱԺՇՏՈՒԹՅԱՆ ԾԱԳՄԱՆ ԴԱՍԸ =====
+const LESSONS = [
+    {
+        title: '📚 ԻՆՉՊԵՍ ԵՎ ԻՆՉՈՒ ԱՌԱՋԱՑԱՎ ԵՐԱԺՇՏՈՒԹՅՈՒՆԸ',
+        text: `1. Երաժշտության առաջացման հիմնական տեսություններ
+Գիտնականների շրջանում միասնական կարծիք չկա երաժշտության ծագման վերաբերյալ։ Առանձնացվում են հետևյալ հիմնական տեսությունները.
+* Խոսքի տեսություն (Խոսք-երաժշտություն): Երաժշտությունը ծագել է խոսքից։ Օգտագործվել են խոսքի արտահայտչական միջոցները (ինտոնացիա, ռիթմ, տեմպ)։ Որոշ գիտնականներ կարծում են, որ խոսքն ու երաժշտությունը զարգացել են միաժամանակ՝ որպես հաղորդակցման մեկ միջոց։
+* Ժեստերի տեսություն (Զգացմունքային խոսք-երաժշտություն): Երաժշտությունը ծագել է մարմնի շարժումներից և ժեստերից, որոնք ուղեկցվել են հնչյուններով (շեշտադրում, ռիթմ)։
+* Բնության ձայների տեսություն: Երաժշտությունը ծագել է բնության ձայների (կենդանիներ, թռչուններ, բնական երևույթներ) նմանակումից։
+* Հավատալիքների/ծիսական տեսություն: Երաժշտությունը կապված է եղել կրոնական հավատալիքների, մոգության և ծեսերի հետ (ոգիների հետ հաղորդակցում, բնության ուժերի հանգստացում)։
+* Աշխատանքային տեսություն: Երաժշտությունը ծագել է աշխատանքային գործընթացից՝ կոլեկտիվ աշխատանքը ռիթմիկ համակարգելու և թեթևացնելու նպատակով։
+* Զգացմունքների/Պարի տեսություն: Երաժշտությունը կապված է մարդու հուզական վիճակների (ուրախություն, տխրություն) արտահայտման և պարի հետ։
+
+2. Երաժշտության դերը հին հասարակությունում
+Երաժշտությունը եղել է մարդու կյանքի անբաժան մասը՝ ուղեկցելով ծննդից մինչև մահ (հարսանիք, թաղում, տոներ)։
+Օգտագործվել է որպես հաղորդակցման, ինքնարտահայտման և սոցիալական համախմբման միջոց։
+
+3. Հնագիտական ապացույցներ
+Երաժշտության գոյությունը հաստատվում է հնագույն նվագարանների (ֆլեյտաներ, փողեր) հայտնաբերմամբ։
+Առաջին նվագարանները պատրաստվել են ոսկորից, փղոսկրից, մամոնտի ժանիքներից։
+Դրանք հայտնաբերվել են Ասիայում, Եվրոպայում, Աֆրիկայում և այլ վայրերում (մոտ 40000 տարվա հնություն)։
+
+4. Պատկերազարդ ապացույցներ
+Հին եգիպտական պատկերներում (կանայք երաժշտական գործիքներով) և հունական սափորների (ամֆորաներ) վրա առկա են երաժշտական տեսարաններ, ինչը վկայում է հին քաղաքակրթություններում երաժշտության կարևոր դերի մասին։
+
+Եզրակացություն: Երաժշտությունը մարդկության պատմության անբաժան մասն է եղել սկզբից ի վեր՝ զարգանալով բազմաթիվ գործոնների (խոսք, աշխատանք, հավատալիքներ, հույզեր) ազդեցության ներքո։`,
+        photos: [
+            { src: 'egypt.jpg', caption: 'Երաժիշտներ հին եգիպտական որմնանկարում' },
+            { src: 'flute.jpg', caption: 'Ֆլեյտա և նոտաներ' },
+            { src: 'ritual.jpg', caption: 'Պարզունակ մարդկանց ծիսական պարերը' }
+        ]
+    }
+];
+        document.addEventListener('DOMContentLoaded', function() {
+            const coverScreen = document.getElementById('cover-screen');
+            const bookScreen = document.getElementById('book-screen');
+            const cover = document.getElementById('cover');
+            const bookEl = document.getElementById('book');
+
+            let pageFlip = null;
+
+            function isMobile() {
+                return window.innerWidth <= 700;
+            }
+
+            // ===== УЛУЧШЕННАЯ ФУНКЦИЯ РАЗБИЕНИЯ ТЕКСТА =====
+            function measureAndSplit(text, maxWidth, maxHeight, fontSize, lineHeight, titleHtml) {
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'fixed';
+                wrapper.style.top = '0';
+                wrapper.style.left = '0';
+                wrapper.style.width = '100%';
+                wrapper.style.height = '100%';
+                wrapper.style.overflow = 'visible';
+                wrapper.style.pointerEvents = 'none';
+                wrapper.style.zIndex = '-9999';
+                wrapper.style.opacity = '0';
+
+                const measurer = document.createElement('div');
+                measurer.style.position = 'absolute';
+                measurer.style.top = '0';
+                measurer.style.left = '0';
+                measurer.style.width = maxWidth + 'px';
+                measurer.style.fontFamily = "'Comic Sans MS', 'Segoe UI', cursive";
+                measurer.style.fontSize = fontSize + 'px';
+                measurer.style.lineHeight = lineHeight + 'px';
+                measurer.style.wordWrap = 'break-word';
+                measurer.style.height = 'auto';
+                measurer.style.maxHeight = 'none';
+                measurer.style.display = 'block';
+
+                wrapper.appendChild(measurer);
+                document.documentElement.appendChild(wrapper);
+
+                const maxLines = Math.floor(maxHeight / lineHeight);
+                const paragraphs = text.split('\n');
+                const pages = [];
+
+                let currentPage = titleHtml ? titleHtml + '<br>' : '';
+
+                paragraphs.forEach((paragraph) => {
+                    if (paragraph.trim() === '') {
+                        currentPage += '<br>';
+                        return;
+                    }
+
+                    const words = paragraph.split(' ');
+                    words.forEach(word => {
+                        const testText = currentPage + word + ' ';
+                        measurer.innerHTML = testText;
+                        
+                        const lines = Math.ceil(measurer.getBoundingClientRect().height / lineHeight);
+
+                        if (lines > maxLines) {
+                            pages.push(currentPage.trim());
+                            currentPage = word + ' ';
+                        } else {
+                            currentPage += word + ' ';
+                        }
+                    });
+
+                    currentPage += '<br>';
+                });
+
+                if (currentPage.replace(/<br>/g, '').trim()) {
+                    pages.push(currentPage.trim());
+                }
+
+                if (pages.length === 0 && text.trim() !== '') {
+                    pages.push(currentPage.trim());
+                }
+
+                document.documentElement.removeChild(wrapper);
+                return pages;
+            }
+
+            function buildPages() {
+                bookEl.innerHTML = '';
+
+                const mobile = isMobile();
+                const availW = bookScreen.clientWidth - 20;
+                const availH = bookScreen.clientHeight - 20;
+
+                let pageH = availH;
+                let pageW = pageH * (2 / 3);
+
+                if (!mobile) {
+                    pageW = pageW * 2;
+                    if (pageW > availW) {
+                        pageW = availW;
+                        pageH = pageW / 2 / (2 / 3);
+                    }
+                } else {
+                    if (pageW > availW) {
+                        pageW = availW;
+                        pageH = pageW / (2 / 3);
+                    }
+                }
+
+                const singlePageW = mobile ? Math.floor(pageW) : Math.floor(pageW / 2);
+                const singlePageH = Math.floor(pageH);
+                const fontSize = 11;
+                const lineHeight = 25;
+                const maxTextW = singlePageW - 46;
+                const maxTextH = singlePageH - 5;
+
+                LESSONS.forEach((lesson) => {
+                    const textPages = measureAndSplit(
+                        lesson.text,
+                        maxTextW,
+                        maxTextH,
+                        fontSize,
+                        lineHeight,
+                        `<span class="lesson-title">${lesson.title}</span>`
+                    );
+
+                    textPages.forEach(html => {
+                        const page = document.createElement('div');
+                        page.className = 'page text-page';
+                        const content = document.createElement('div');
+                        content.className = 'page-content';
+                        content.innerHTML = html;
+                        page.appendChild(content);
+                        bookEl.appendChild(page);
+                    });
+
+                    if (lesson.photos && lesson.photos.length) {
+                        lesson.photos.forEach(photo => {
+                            const page = document.createElement('div');
+                            page.className = 'page photo-page';
+                            page.innerHTML = `
+                                <div class="photo-frame">
+                                    <img src="${photo.src}" alt="${photo.caption}" loading="lazy">
+                                    <div class="photo-caption">${photo.caption}</div>
+                                </div>
+                            `;
+                            bookEl.appendChild(page);
+                        });
+                    }
+                });
+
+                for (let i = 0; i < 4; i++) {
+                    const page = document.createElement('div');
+                    page.className = 'page text-page';
+                    page.innerHTML = '<div class="page-content"></div>';
+                    bookEl.appendChild(page);
+                }
+
+                return { singlePageW, singlePageH, mobile };
+            }
+
+            cover.addEventListener('click', () => {
+                coverScreen.classList.add('hidden');
+                bookScreen.classList.add('visible');
+
+                setTimeout(() => {
+                    if (pageFlip) return;
+
+                    const { singlePageW, singlePageH, mobile } = buildPages();
+
+                    pageFlip = new St.PageFlip(bookEl, {
+                        width: singlePageW,
+                        height: singlePageH,
+                        size: 'fixed',
+                        showCover: false,
+                        maxShadowOpacity: 0.4,
+                        flippingTime: 500,
+                        usePortrait: mobile,
+                        mobileScrollSupport: true,
+                        drawShadow: true,
+                        startZIndex: 0
+                    });
+
+                    pageFlip.loadFromHTML(document.querySelectorAll('#book .page'));
+
+                    const prevBtn = document.getElementById('prev-btn');
+                    const nextBtn = document.getElementById('next-btn');
+
+                    prevBtn.addEventListener('click', () => pageFlip.flipPrev());
+                    nextBtn.addEventListener('click', () => pageFlip.flipNext());
+
+                    pageFlip.on('flip', (e) => {
+                        const currentPage = e.data;
+                        const total = document.querySelectorAll('#book .page').length;
+
+                        if (currentPage === 0) {
+                            prevBtn.disabled = true;
+                            prevBtn.style.opacity = '0.4';
+                        } else {
+                            prevBtn.disabled = false;
+                            prevBtn.style.opacity = '1';
+                        }
+
+                        if (currentPage >= total - 1) {
+                            const p1 = document.createElement('div');
+                            p1.className = 'page text-page';
+                            p1.innerHTML = '<div class="page-content"></div>';
+                            const p2 = document.createElement('div');
+                            p2.className = 'page text-page';
+                            p2.innerHTML = '<div class="page-content"></div>';
+                            bookEl.appendChild(p1);
+                            bookEl.appendChild(p2);
+                            pageFlip.loadFromHTML(document.querySelectorAll('#book .page'));
+                        }
+
+                        nextBtn.disabled = false;
+                        nextBtn.style.opacity = '1';
+                    });
+
+                    prevBtn.disabled = true;
+                    prevBtn.style.opacity = '0.4';
+                }, 50);
+            });
+        });
+    </script>
+</body>
+</html>
